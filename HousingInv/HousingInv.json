@@ -1,0 +1,13 @@
+{
+  "Author": "James Keesey",
+  "Name": "HousingInv",
+  "Punchline": "Tracks housing inventory.",
+  "Description": "Keeps track of all of the inventory items in all of your houses.",
+  "InternalName": "HousingInv",
+  "RepoUrl": "https://github.com/jlkeesey/HousingInv",
+  "ApplicableVersion": "any",
+  "Tags": [
+    "house",
+    "plugin"
+  ]
+}
