@@ -21,52 +21,50 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+using System;
 using Dalamud.Game.ClientState;
-using HousingInv.Model.Servers;
+using FFXIVClientStructs.FFXIV.Client.Game;
 
-namespace HousingInv.Model.Players;
+namespace HousingInv.Model.Territories;
 
-/// <summary>
-///     Information about the player running this plugin.
-/// </summary>
-public class Myself : IMyself
+internal unsafe class TerritoryTracker : IDisposable
 {
     private readonly ClientState _clientState;
-    private readonly ServerManager _serverManager;
+    private readonly GameMain* _gameMain;
+    private readonly TerritoryManager _territoryManager;
 
-    private Server? _homeWorld;
-    private string? _name;
-
-    public Myself(ClientState clientState, ServerManager serverManager)
+    public TerritoryTracker(ClientState clientState, TerritoryManager territoryManager)
     {
         _clientState = clientState;
-        _serverManager = serverManager;
-        
+        _territoryManager = territoryManager;
+
+        _gameMain = GameMain.Instance();
+
+        // UpdateCurrentTerritory(unchecked((ushort)_gameMain->CurrentTerritoryTypeId));
+        //
+        // _clientState.TerritoryChanged += ClientStateOnTerritoryChanged;
     }
 
-    public uint ObjectId => _clientState.LocalPlayer?.ObjectId ?? 0;
+    public Territory CurrentTerritory { get; private set; } = Territory.Empty;
 
-    /// <summary>
-    ///     The player character's name.
-    /// </summary>
-    public string Name
+    public void Dispose()
     {
-        get { return _name ??= _clientState.LocalPlayer?.Name.TextValue ?? "Who am I?"; }
+        // _clientState.TerritoryChanged -= ClientStateOnTerritoryChanged;
     }
 
-    /// <summary>
-    ///     The player character's home world.
-    /// </summary>
-    public Server HomeServer
+    private void ClientStateOnTerritoryChanged(object? sender, ushort id)
     {
-        get
-        {
-            return _homeWorld ??= _serverManager.GetWorld(_clientState.LocalPlayer?.HomeWorld.GameData?.Name.ToString());
-        }
+        UpdateCurrentTerritory(id);
     }
 
-    /// <summary>
-    ///     Returns my full name (name plus home world).
-    /// </summary>
-    public string FullName => $"{Name}@{HomeServer.Name}";
+    private void UpdateCurrentTerritory(ushort id)
+    {
+        // var gTerritory = _gameMain->CurrentTerritoryTypeId;
+        // PluginLog.Log($"@@@@ id:{id}  gameId:{gTerritory}");
+        // CurrentTerritory = _territoryManager[id];
+        // if (CurrentTerritory == Territory.Empty)
+        //     PluginLog.Log($"@@@@ {id}: Cannot identify current Territory");
+        // else
+        //     PluginLog.Log($"@@@@ {id}: now in {CurrentTerritory}");
+    }
 }

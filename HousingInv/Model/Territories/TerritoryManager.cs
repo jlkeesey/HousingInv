@@ -24,7 +24,6 @@
 using System;
 using System.Collections.Generic;
 using Dalamud.Data;
-using Dalamud.Logging;
 using Lumina.Excel;
 using Lumina.Excel.GeneratedSheets;
 
@@ -33,7 +32,7 @@ namespace HousingInv.Model.Territories;
 /// <summary>
 ///     Reads and parses the FFXIV internal data for a territories into a usable format.
 /// </summary>
-public class TerritoryManager
+public class TerritoryManager : ITerritoryManager
 {
     private readonly Dictionary<uint, Territory> _cache = new();
     private readonly ExcelSheet<TerritoryType> _territoryTypes;
@@ -67,7 +66,7 @@ public class TerritoryManager
     public Territory Get(uint? id)
     {
         if (id == null) return Territory.Empty;
-        return _cache.TryGetValue((uint)id, out var territory) ? territory : Make(_territoryTypes.GetRow((uint) id));
+        return _cache.TryGetValue((uint) id, out var territory) ? territory : Make(_territoryTypes.GetRow((uint) id));
     }
 
     /// <summary>
@@ -78,7 +77,9 @@ public class TerritoryManager
     private Territory Make(TerritoryType? territoryTypeRow)
     {
         if (territoryTypeRow == null) return Territory.Empty;
-        if (territoryTypeRow.TerritoryIntendedUse == (uint) TerritoryUse.Main && territoryTypeRow.PlaceName.Value == null) return Territory.Empty;
+        if (territoryTypeRow.TerritoryIntendedUse == (uint) TerritoryUse.Main
+         && territoryTypeRow.PlaceName.Value == null)
+            return Territory.Empty;
 
         var name = territoryTypeRow.PlaceName.Value?.Name.ToString() ?? "?[name]?";
         var zone = territoryTypeRow.PlaceNameZone.Value?.Name.ToString() ?? "?[zone]?";

@@ -26,6 +26,7 @@ using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using Dalamud.Configuration;
 using Dalamud.Game.Text;
+using Dalamud.Logging;
 using Dalamud.Plugin;
 using NodaTime;
 
@@ -35,7 +36,7 @@ namespace HousingInv;
 ///     Contains all of the user configuration settings.
 /// </summary>
 [Serializable]
-public partial class Configuration : IPluginConfiguration
+public partial class Configuration : IPluginConfiguration, IDisposable
 {
     public string Temp = string.Empty;
 
@@ -89,4 +90,9 @@ public partial class Configuration : IPluginConfiguration
 #endif
 
     [JsonIgnore] private DalamudPluginInterface? _pluginInterface;
+
+    public void Dispose()
+    {
+        // PluginLog.Log("@@@@ Disposing Configuration");
+    }
 }

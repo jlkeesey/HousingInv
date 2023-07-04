@@ -21,21 +21,27 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-using Dalamud.Logging;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using System.Collections.Generic;
 
-namespace HousingInv.Model.FC;
+namespace HousingInv.Model.Territories;
 
-public unsafe class FreeCompanyManager : IFreeCompanyManager
+public interface ITerritoryManager
 {
-#if DEBUG
-    public void LogFc()
-    {
-        var fc = AgentFreeCompanyProfile.Instance();
+    /// <summary>
+    ///     An <see cref="IEnumerable{T}" /> over all of the defined territories.
+    /// </summary>
+    IEnumerable<Territory> Territories { get; }
 
-        PluginLog.Log($"@@@@ name:'{fc->Name}'  master:'{fc->Master}'  ward: {fc->WardNumber}  plot:{fc->PlotNumber}");
-        PluginLog.Log($"@@@@ member count:'{fc->MemberCount}'  online:'{fc->MembersOnline}'  rank: {fc->Rank}  tag:{fc->Tag}");
-        PluginLog.Log($"@@@@ member estate name:'{fc->EstateName}'  slogan:'{fc->Slogan}'");
-    }
+    Territory this[uint? index] { get; }
+
+    /// <summary>
+    ///     Returns the <see cref="Territory" /> for the given id.
+    /// </summary>
+    /// <param name="id">The territory id to query.</param>
+    /// <returns>The given <see cref="Territory" /> or <see cref="Territory.Empty" /> if not found.</returns>
+    Territory Get(uint? id);
+
+#if DEBUG
+    public void ListAll();
 #endif
 }

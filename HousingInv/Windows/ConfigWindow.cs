@@ -24,7 +24,9 @@
 using System;
 using System.Numerics;
 using Dalamud.Interface;
+using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Windowing;
+using Dalamud.Logging;
 using HousingInv.Localization;
 using HousingInv.Model.Aetherytes;
 using HousingInv.Model.FC;
@@ -33,8 +35,10 @@ using HousingInv.Model.Teleports;
 using HousingInv.Model.Territories;
 using ImGuiNET;
 using ImGuiScene;
+using Ninject;
 using static System.String;
 
+// ReSharper disable ClassNeverInstantiated.Global
 // ReSharper disable InvertIf
 
 namespace HousingInv.Windows;
@@ -42,13 +46,14 @@ namespace HousingInv.Windows;
 /// <summary>
 ///     Defines the configuration editing window.
 /// </summary>
-public sealed partial class ConfigWindow : Window, IDisposable
+public sealed partial class ConfigWindow : Window
 {
     private const string Title = "HousingInv Configuration";
     private readonly AetheryteManager _aetheryteManager;
 
     private readonly TextureWrap? _chatterImage;
     private readonly Configuration _configuration;
+    private readonly FileDialogManager _fileDialogManager;
     private readonly FreeCompanyManager _freeCompanyManager;
     private readonly HouseManager _houseManager;
     private readonly Loc _loc;
@@ -63,16 +68,18 @@ public sealed partial class ConfigWindow : Window, IDisposable
     /// <param name="territoryManager"></param>
     /// <param name="aetheryteManager"></param>
     /// <param name="houseManager"></param>
+    /// <param name="fileDialogManager"></param>
     /// <param name="loc"></param>
     /// <param name="teleportLocationManager"></param>
     /// <param name="freeCompanyManager"></param>
     public ConfigWindow(Configuration config,
-                        TextureWrap? chatterImage,
+                        [Named("pluginIcon")] TextureWrap? chatterImage,
                         TerritoryManager territoryManager,
                         AetheryteManager aetheryteManager,
                         TeleportLocationManager teleportLocationManager,
                         FreeCompanyManager freeCompanyManager,
                         HouseManager houseManager,
+                        FileDialogManager fileDialogManager,
                         Loc loc) : base(Title)
     {
         _configuration = config;
@@ -82,6 +89,7 @@ public sealed partial class ConfigWindow : Window, IDisposable
         _teleportLocationManager = teleportLocationManager;
         _freeCompanyManager = freeCompanyManager;
         _houseManager = houseManager;
+        _fileDialogManager = fileDialogManager;
         _loc = loc;
 
         SizeConstraints = new WindowSizeConstraints
@@ -91,10 +99,6 @@ public sealed partial class ConfigWindow : Window, IDisposable
 
         Size = new Vector2(800, 520);
         SizeCondition = ImGuiCond.FirstUseEver;
-    }
-
-    public void Dispose()
-    {
     }
 
     /// <summary>
@@ -150,6 +154,16 @@ public sealed partial class ConfigWindow : Window, IDisposable
         ImGui.SameLine();
         if (ImGui.Button("House")) _houseManager.LogHere();
 
+        if (ImGui.Button("File"))
+            _fileDialogManager.SaveFolderDialog("Folder to Store Logs",
+                                                "FF14 Chatter",
+                                                (isOk, selected) =>
+                                                {
+                                                    if (isOk)
+                                                        PluginLog.Log($"@@@@ selected folder: {selected}");
+                                                    else
+                                                        PluginLog.Log($"@@@@ selected folder: (cancelled)");
+                                                });
         VerticalSpace();
     }
 

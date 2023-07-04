@@ -57,6 +57,146 @@ public enum TerritoryUse
     // ReSharper restore IdentifierTypo
 }
 
+/// <summary>
+///     An area of the game where a character can be e.g. Mist, a dungeon, or your inn room.
+/// </summary>
+public class Territory : IComparable<Territory>, IComparable, IEquatable<Territory>
+{
+    public static readonly Territory Empty = new(0, "?[name]?", "?[zone]?", "?[region]?", TerritoryUse.Main);
+
+    public Territory(uint id, string name, string zone, string region, TerritoryUse territoryUse)
+    {
+        Id = id;
+        Name = name;
+        Zone = zone;
+        Region = region;
+        TerritoryUse = territoryUse;
+    }
+
+    /// <summary>
+    ///     The territory id of this territory.
+    /// </summary>
+    public uint Id { get; }
+
+    /// <summary>
+    ///     The region of this territory such as <c>La Noscea</c>. This will often be the same as the <see cref="Zone" /> This
+    ///     can be blank for certain territories such a the Gaol that is no where.
+    /// </summary>
+    public string Region { get; }
+
+    /// <summary>
+    ///     The zone of this territory such as <c>La Noscea</c>. This can be blank for certain territories such a the Gaol that
+    ///     is no where.
+    /// </summary>
+    public string Zone { get; }
+
+    /// <summary>
+    ///     The name of this territory such as <c>Lower La Noscea</c>.
+    /// </summary>
+    public string Name { get; }
+
+    /// <summary>
+    /// What this territory is used for.
+    /// </summary>
+    public TerritoryUse TerritoryUse { get; }
+
+    public override string ToString()
+    {
+        return $"{Region}:{Zone}:{Name} for {TerritoryUse}";
+    }
+
+    public static bool MatchResidential(Territory lhs, Territory rhs)
+    {
+        if (lhs.Zone != rhs.Zone || lhs.Region != rhs.Region) return false;
+        return lhs.TerritoryUse is TerritoryUse.ResidentialZone or TerritoryUse.Residence
+            && rhs.TerritoryUse is TerritoryUse.ResidentialZone or TerritoryUse.Residence;
+    }
+
+    #region Comparable
+
+    public int CompareTo(Territory? other)
+    {
+        if (ReferenceEquals(this, other)) return 0;
+        if (ReferenceEquals(null, other)) return 1;
+        var nameComparison = string.Compare(Name, other.Name, StringComparison.Ordinal);
+        if (nameComparison != 0) return nameComparison;
+        var zoneComparison = string.Compare(Zone, other.Zone, StringComparison.Ordinal);
+        if (zoneComparison != 0) return zoneComparison;
+        var regionComparison = string.Compare(Region, other.Region, StringComparison.Ordinal);
+        if (regionComparison != 0) return regionComparison;
+        return TerritoryUse.CompareTo(other.TerritoryUse);
+    }
+
+    public int CompareTo(object? obj)
+    {
+        if (ReferenceEquals(null, obj)) return 1;
+        if (ReferenceEquals(this, obj)) return 0;
+        return obj is Territory other
+                   ? CompareTo(other)
+                   : throw new ArgumentException($"Object must be of type {nameof(Territory)}");
+    }
+
+    public static bool operator <(Territory? left, Territory? right)
+    {
+        return Comparer<Territory>.Default.Compare(left, right) < 0;
+    }
+
+    public static bool operator >(Territory? left, Territory? right)
+    {
+        return Comparer<Territory>.Default.Compare(left, right) > 0;
+    }
+
+    public static bool operator <=(Territory? left, Territory? right)
+    {
+        return Comparer<Territory>.Default.Compare(left, right) <= 0;
+    }
+
+    public static bool operator >=(Territory? left, Territory? right)
+    {
+        return Comparer<Territory>.Default.Compare(left, right) >= 0;
+    }
+
+    #endregion
+
+    #region Equality
+
+    public bool Equals(Territory? other)
+    {
+        if (ReferenceEquals(null, other)) return false;
+        if (ReferenceEquals(this, other)) return true;
+        if (MatchResidential(this, other))
+        {
+            return true;
+        }
+        return Zone == other.Zone && Region == other.Region && TerritoryUse == other.TerritoryUse;
+    }
+
+    public override bool Equals(object? obj)
+    {
+        if (ReferenceEquals(null, obj)) return false;
+        if (ReferenceEquals(this, obj)) return true;
+        return obj.GetType() == GetType() && Equals((Territory) obj);
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Name, Zone, Region, (int) TerritoryUse);
+    }
+
+    public static bool operator ==(Territory? left, Territory? right)
+    {
+        return Equals(left, right);
+    }
+
+    public static bool operator !=(Territory? left, Territory? right)
+    {
+        return !Equals(left, right);
+    }
+
+    #endregion
+}
+
+// ReSharper disable CommentTypo
 /*
 12:42:34.883 | INF [HousingInv]   Row Use             Region                         Zone                           Name                          
 12:42:34.883 | INF [HousingInv] ----- ---             ------------------------------ ------------------------------ ------------------------------
@@ -912,132 +1052,4 @@ public enum TerritoryUse
 { } [ Send ]
 
  */
-
-/// <summary>
-///     An area of the game where a character can be e.g. Mist, a dungeon, or your inn room.
-/// </summary>
-public class Territory : IComparable<Territory>, IComparable, IEquatable<Territory>
-{
-    public static readonly Territory Empty = new(0, "?[name]?", "?[zone]?", "?[region]?", TerritoryUse.Main);
-
-    public Territory(uint id, string name, string zone, string region, TerritoryUse territoryUse)
-    {
-        Id = id;
-        Name = name;
-        Zone = zone;
-        Region = region;
-        TerritoryUse = territoryUse;
-    }
-
-    /// <summary>
-    ///     The territory id of this territory.
-    /// </summary>
-    public uint Id { get; }
-
-    /// <summary>
-    ///     The region of this territory such as <c>La Noscea</c>. This will often be the same as the <see cref="Zone" /> This
-    ///     can be blank for certain territories such a the Gaol that is no where.
-    /// </summary>
-    public string Region { get; }
-
-    /// <summary>
-    ///     The zone of this territory such as <c>La Noscea</c>. This can be blank for certain territories such a the Gaol that
-    ///     is no where.
-    /// </summary>
-    public string Zone { get; }
-
-    /// <summary>
-    ///     The name of this territory such as <c>Lower La Noscea</c>.
-    /// </summary>
-    public string Name { get; }
-
-    /// <summary>
-    /// What this territory is used for.
-    /// </summary>
-    public TerritoryUse TerritoryUse { get; }
-
-    public override string ToString()
-    {
-        return $"{Region}:{Zone}:{Name} for {TerritoryUse}";
-    }
-
-    #region Comparable
-
-    public int CompareTo(Territory? other)
-    {
-        if (ReferenceEquals(this, other)) return 0;
-        if (ReferenceEquals(null, other)) return 1;
-        var nameComparison = string.Compare(Name, other.Name, StringComparison.Ordinal);
-        if (nameComparison != 0) return nameComparison;
-        var zoneComparison = string.Compare(Zone, other.Zone, StringComparison.Ordinal);
-        if (zoneComparison != 0) return zoneComparison;
-        var regionComparison = string.Compare(Region, other.Region, StringComparison.Ordinal);
-        if (regionComparison != 0) return regionComparison;
-        return TerritoryUse.CompareTo(other.TerritoryUse);
-    }
-
-    public int CompareTo(object? obj)
-    {
-        if (ReferenceEquals(null, obj)) return 1;
-        if (ReferenceEquals(this, obj)) return 0;
-        return obj is Territory other
-                   ? CompareTo(other)
-                   : throw new ArgumentException($"Object must be of type {nameof(Territory)}");
-    }
-
-    public static bool operator <(Territory? left, Territory? right)
-    {
-        return Comparer<Territory>.Default.Compare(left, right) < 0;
-    }
-
-    public static bool operator >(Territory? left, Territory? right)
-    {
-        return Comparer<Territory>.Default.Compare(left, right) > 0;
-    }
-
-    public static bool operator <=(Territory? left, Territory? right)
-    {
-        return Comparer<Territory>.Default.Compare(left, right) <= 0;
-    }
-
-    public static bool operator >=(Territory? left, Territory? right)
-    {
-        return Comparer<Territory>.Default.Compare(left, right) >= 0;
-    }
-
-    #endregion
-
-    #region Equality
-
-    public bool Equals(Territory? other)
-    {
-        if (ReferenceEquals(null, other)) return false;
-        if (ReferenceEquals(this, other)) return true;
-        return Name == other.Name && Zone == other.Zone && Region == other.Region && TerritoryUse == other.TerritoryUse;
-    }
-
-    public override bool Equals(object? obj)
-    {
-        if (ReferenceEquals(null, obj)) return false;
-        if (ReferenceEquals(this, obj)) return true;
-        if (obj.GetType() != GetType()) return false;
-        return Equals((Territory) obj);
-    }
-
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(Name, Zone, Region, (int) TerritoryUse);
-    }
-
-    public static bool operator ==(Territory? left, Territory? right)
-    {
-        return Equals(left, right);
-    }
-
-    public static bool operator !=(Territory? left, Territory? right)
-    {
-        return !Equals(left, right);
-    }
-
-    #endregion
-}
+// ReSharper restore CommentTypo

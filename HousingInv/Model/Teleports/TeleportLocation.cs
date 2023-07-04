@@ -59,16 +59,32 @@ public abstract class HousingLocation : TeleportLocation
 
 public class FreeCompanyLocation : HousingLocation
 {
-    public FreeCompanyLocation(Aetheryte aetheryte, Territory territory) : base(aetheryte, territory, "Free Company")
+    public FreeCompanyLocation(Aetheryte aetheryte, Territory territory, int ward, int plot) : base(aetheryte,
+        territory,
+        "Free Company",
+        $"Free Company at {territory.Name} (Ward {ward}, Plot {plot})")
     {
+        Ward = ward;
+        Plot = plot;
     }
+
+    public int Ward { get; }
+    public int Plot { get; }
 }
 
 public class PrivateHouseLocation : HousingLocation
 {
-    public PrivateHouseLocation(Aetheryte aetheryte, Territory territory) : base(aetheryte, territory, "Your house")
+    public PrivateHouseLocation(Aetheryte aetheryte, Territory territory, int ward, int plot) : base(aetheryte,
+        territory,
+        "Your house",
+        $"Your house at {territory.Name} (Ward {ward}, Plot {plot})")
     {
+        Ward = ward;
+        Plot = plot;
     }
+
+    public int Ward { get; }
+    public int Plot { get; }
 }
 
 public class ApartmentLocation : HousingLocation

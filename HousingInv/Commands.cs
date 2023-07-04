@@ -1,4 +1,4 @@
-// Copyright 2023 James Keesey
+﻿// Copyright 2023 James Keesey
 // 
 // Redistribution and use in source and binary forms, with or without modification,
 // are permitted provided that the following conditions are met:
@@ -10,7 +10,7 @@
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
 // 
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS �AS IS�
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS”
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
 // ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
@@ -25,27 +25,59 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Dalamud.Game.Command;
+using Dalamud.Logging;
+using HousingInv.System;
+using HousingInv.Windows;
+using Ninject.Activation.Blocks;
+
+// ReSharper disable ClassNeverInstantiated.Global
 
 namespace HousingInv;
 
-/// <summary>
-///     Handles the text commands for this plugin.
-/// </summary>
-public sealed partial class HousingInv
+public interface ICommands
+{
+    public void RegisterCommands();
+}
+
+public sealed class Commands : IDisposable, ICommands
 {
     private const string CommandConfig = "/housinginv";
     private const string CommandDebug = "/housinginvdebug";
 
     private const string DebugList = "list";
+    private readonly CommandManager _commandManager;
 
     private readonly Dictionary<string, CommandInfo> _commands = new();
+
+    private readonly Configuration _configuration;
     private readonly Dictionary<string, Func<bool>> _debugFlags = new();
+    private readonly ILogger _logger;
+    private readonly JlkWindowManager _windowManager;
+
+    public Commands(Configuration configuration,
+                    CommandManager commandManager,
+                    JlkWindowManager windowManager,
+                    ILogger logger)
+    {
+        _configuration = configuration;
+        _commandManager = commandManager;
+        _windowManager = windowManager;
+        _logger = logger;
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        // PluginLog.Log("@@@@ Disposing Commands");
+        UnregisterCommands();
+    }
 
     /// <summary>
     ///     Registers all of the text commands with the Dalamud plugin environment.
     /// </summary>
-    private void RegisterCommands()
+    public void RegisterCommands()
     {
+        PluginLog.Log("@@@@ registering commands");
         _debugFlags.TryAdd("debug", () => _configuration.IsDebug);
 
         _commands[CommandConfig] = new CommandInfo(OnConfig)

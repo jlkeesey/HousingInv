@@ -21,16 +21,18 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Dalamud.Data;
+using Dalamud.Logging;
 
 namespace HousingInv.Model.Servers;
 
 /// <summary>
 ///     Utilities for manipulating <see cref="Server" /> objects.
 /// </summary>
-public class ServerManager 
+public class ServerManager : IServerManager, IDisposable
 {
     private readonly DataManager _gameData;
     private readonly Dictionary<uint, Server> _worldById = new();
@@ -38,6 +40,7 @@ public class ServerManager
 
     public ServerManager(DataManager gameData)
     {
+        // PluginLog.Log("@@@@ Creating ServerManager");
         _gameData = gameData;
     }
 
@@ -78,5 +81,10 @@ public class ServerManager
         _worldById.Add(worldRow.RowId, world);
         _worldByName.Add(world.Name, world);
         return world;
+    }
+
+    public void Dispose()
+    {
+        // PluginLog.Log("@@@@ Disposing ServerManager");
     }
 }

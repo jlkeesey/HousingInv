@@ -44,11 +44,11 @@ public class Loc
 
     private LocalizedMessageList _messages = new();
 
-    public Loc() : this(SystemLanguage, SystemCountry)
+    public Loc(ILogger logger) : this(logger, SystemLanguage, SystemCountry)
     {
     }
 
-    public Loc(string language, string country)
+    public Loc(ILogger logger, string language, string country)
     {
         if (IsNullOrWhiteSpace(language))
             throw new ArgumentException("Argument cannot be null, empty, or whitespace", nameof(language));
@@ -56,6 +56,7 @@ public class Loc
             throw new ArgumentException("Argument cannot be null, empty, or whitespace", nameof(language));
         Language = language;
         Country = country;
+        Load(logger);
     }
 
     /// <summary>

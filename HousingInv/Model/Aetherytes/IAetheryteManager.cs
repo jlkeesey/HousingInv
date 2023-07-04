@@ -21,21 +21,24 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-using Dalamud.Logging;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using System.Collections.Generic;
 
-namespace HousingInv.Model.FC;
+namespace HousingInv.Model.Aetherytes;
 
-public unsafe class FreeCompanyManager : IFreeCompanyManager
+public interface IAetheryteManager
 {
-#if DEBUG
-    public void LogFc()
-    {
-        var fc = AgentFreeCompanyProfile.Instance();
+    /// <summary>
+    ///     An <see cref="IEnumerable{T}" /> over all of the defined aetherytes.
+    /// </summary>
+    IEnumerable<Aetheryte> Aetherytes { get; }
 
-        PluginLog.Log($"@@@@ name:'{fc->Name}'  master:'{fc->Master}'  ward: {fc->WardNumber}  plot:{fc->PlotNumber}");
-        PluginLog.Log($"@@@@ member count:'{fc->MemberCount}'  online:'{fc->MembersOnline}'  rank: {fc->Rank}  tag:{fc->Tag}");
-        PluginLog.Log($"@@@@ member estate name:'{fc->EstateName}'  slogan:'{fc->Slogan}'");
-    }
+    Aetheryte this[uint? index] { get; }
+    Aetheryte Get(uint? id);
+
+#if DEBUG
+    /// <summary>
+    ///     Lists all of the known aetherytes to the console.
+    /// </summary>
+    void ListAll();
 #endif
 }

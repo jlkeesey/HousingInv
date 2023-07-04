@@ -21,21 +21,29 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-using Dalamud.Logging;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using HousingInv.Model.Servers;
 
-namespace HousingInv.Model.FC;
+namespace HousingInv.Model.Players;
 
-public unsafe class FreeCompanyManager : IFreeCompanyManager
+/// <summary>
+///     An abstraction for a player's basic information.
+/// </summary>
+public interface IMyself
 {
-#if DEBUG
-    public void LogFc()
-    {
-        var fc = AgentFreeCompanyProfile.Instance();
+    public uint ObjectId { get; }
 
-        PluginLog.Log($"@@@@ name:'{fc->Name}'  master:'{fc->Master}'  ward: {fc->WardNumber}  plot:{fc->PlotNumber}");
-        PluginLog.Log($"@@@@ member count:'{fc->MemberCount}'  online:'{fc->MembersOnline}'  rank: {fc->Rank}  tag:{fc->Tag}");
-        PluginLog.Log($"@@@@ member estate name:'{fc->EstateName}'  slogan:'{fc->Slogan}'");
-    }
-#endif
+    /// <summary>
+    ///     The player character's name.
+    /// </summary>
+    string Name { get; }
+
+    /// <summary>
+    ///     The player character's home world.
+    /// </summary>
+    Server HomeServer { get; }
+
+    /// <summary>
+    ///     Returns my full name (name plus home world).
+    /// </summary>
+    string FullName { get; }
 }

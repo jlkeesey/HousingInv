@@ -21,21 +21,15 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-using Dalamud.Logging;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using HousingInv.Model.Territories;
 
-namespace HousingInv.Model.FC;
+namespace HousingInv.Model.Location;
 
-public unsafe class FreeCompanyManager : IFreeCompanyManager
+public interface ILocator
 {
-#if DEBUG
-    public void LogFc()
-    {
-        var fc = AgentFreeCompanyProfile.Instance();
-
-        PluginLog.Log($"@@@@ name:'{fc->Name}'  master:'{fc->Master}'  ward: {fc->WardNumber}  plot:{fc->PlotNumber}");
-        PluginLog.Log($"@@@@ member count:'{fc->MemberCount}'  online:'{fc->MembersOnline}'  rank: {fc->Rank}  tag:{fc->Tag}");
-        PluginLog.Log($"@@@@ member estate name:'{fc->EstateName}'  slogan:'{fc->Slogan}'");
-    }
-#endif
+    /// <summary>
+    ///     Returns the current <see cref="Territory" /> the user is in or <see cref="Territory.Empty" /> if it cannot be
+    ///     determined.
+    /// </summary>
+    public Territory CurrentTerritory { get; }
 }

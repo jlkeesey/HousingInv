@@ -26,14 +26,15 @@ using Dalamud.Data;
 using Dalamud.Game.ClientState;
 using Dalamud.Game.Command;
 using Dalamud.Game.Gui;
+using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.IoC;
 using Dalamud.Logging;
 using Dalamud.Plugin;
-using FFXIVClientStructs.FFXIV.Client.Game.Housing;
 using HousingInv.Localization;
 using HousingInv.Model.Aetherytes;
 using HousingInv.Model.FC;
 using HousingInv.Model.Houses;
+using HousingInv.Model.Location;
 using HousingInv.Model.Players;
 using HousingInv.Model.Servers;
 using HousingInv.Model.Teleports;
@@ -42,25 +43,19 @@ using HousingInv.Properties;
 using HousingInv.System;
 using HousingInv.Windows;
 using ImGuiScene;
-using NotImplementedException = System.NotImplementedException;
+using Ninject;
+
+// ReSharper disable UnusedType.Global
 
 namespace HousingInv;
 
 /// <summary>
 ///     The entry point for this plugin.
 /// </summary>
-public sealed partial class HousingInv : IDalamudPlugin
+public sealed class HousingInv : IDalamudPlugin
 {
-    public static string Version = string.Empty;
-
-    private readonly CommandManager _commandManager;
-    private readonly ClientState _clientState;
     private readonly Configuration _configuration;
-    private readonly ILogger _logger;
-
-    private readonly TextureWrap _pluginIcon;
-    private readonly JlkWindowManager _windowManager;
-    private readonly TerritoryManager _territoryManager;
+    private readonly StandardKernel _kernel;
 
     public HousingInv([RequiredVersion("1.0")] DalamudPluginInterface pluginInterface,
                       [RequiredVersion("1.0")] ChatGui chatGui,
@@ -68,47 +63,47 @@ public sealed partial class HousingInv : IDalamudPlugin
                       [RequiredVersion("1.0")] CommandManager commandManager,
                       [RequiredVersion("1.0")] DataManager dataManager)
     {
-        _commandManager = commandManager;
-        _clientState = clientState;
-
         try
         {
-            Version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "";
-            _logger = new Logger();
-
-#if DEBUG
-            // SeSpecialCharacters.InitializeDebug(_logger);
-#endif
-            var loc = new Loc();
-            loc.Load(_logger);
-
             _configuration = Configuration.Load(pluginInterface);
 
-            var dateManager = new DateHelper() as IDateHelper;
-            var worldManager = new ServerManager(dataManager);
-            _territoryManager = new TerritoryManager(dataManager);
-            var aetheryteManager = new AetheryteManager(dataManager, _territoryManager);
-            var teleportLocationManager = new TeleportLocationManager(aetheryteManager, _territoryManager);
-            var freeCompanyManager = new FreeCompanyManager();
-            var houseManager = new HouseManager();
-            var myself = new Myself(clientState, worldManager);
+            _kernel = new StandardKernel();
+            // Add system objects as transient so they are not disposed.
+            _kernel.Bind<DalamudPluginInterface>().ToConstant(pluginInterface).InTransientScope();
+            _kernel.Bind<ChatGui>().ToConstant(chatGui).InTransientScope();
+            _kernel.Bind<ClientState>().ToConstant(clientState).InTransientScope();
+            _kernel.Bind<CommandManager>().ToConstant(commandManager).InTransientScope();
+            _kernel.Bind<DataManager>().ToConstant(dataManager).InTransientScope();
 
-            _pluginIcon = pluginInterface.UiBuilder.LoadImage(Resources.Icon);
-            _windowManager = new JlkWindowManager(pluginInterface,
-                                                  _configuration,
-                                                  _territoryManager,
-                                                  aetheryteManager,
-                                                  teleportLocationManager,
-                                                  freeCompanyManager,
-                                                  houseManager,
-                                                  Name,
-                                                  _pluginIcon,
-                                                  loc);
-            RegisterCommands();
+            // Add the plugin objects/classes as singletons so they are dispose. Could be any scope other than transient.
+            _kernel.Bind<Configuration>().ToConstant(_configuration).InSingletonScope();
+            _kernel.Bind<ILogger>().To<Logger>().InSingletonScope();
+            _kernel.Bind<Loc>().ToSelf().InSingletonScope();
 
-            _clientState.TerritoryChanged += ClientStateOnTerritoryChanged;
+            _kernel.Bind<IServerManager>().To<ServerManager>().InSingletonScope();
+            _kernel.Bind<ITerritoryManager>().To<TerritoryManager>().InSingletonScope();
+            _kernel.Bind<ILocator>().To<Locator>().InSingletonScope();
+            _kernel.Bind<IAetheryteManager>().To<AetheryteManager>().InSingletonScope();
+            _kernel.Bind<ITeleportLocationManager>().To<TeleportLocationManager>().InSingletonScope();
+            _kernel.Bind<IFreeCompanyManager>().To<FreeCompanyManager>().InSingletonScope();
+            _kernel.Bind<IMyself>().To<Myself>().InSingletonScope();
+            _kernel.Bind<IHouseManager>().To<HouseManager>().InSingletonScope();
+            _kernel.Bind<ConfigWindow>().ToSelf().InSingletonScope();
+            _kernel.Bind<ICommands>().To<Commands>().InSingletonScope();
+            _kernel.Bind<FileDialogManager>().To<FileDialogManager>().InSingletonScope();
+            _kernel.Bind<JlkWindowManager>().ToSelf().InSingletonScope();
 
-            var list = teleportLocationManager.GetTeleportLocations();
+            var pluginIcon = pluginInterface.UiBuilder.LoadImage(Resources.Icon);
+            _kernel.Bind<TextureWrap>().ToConstant(pluginIcon).Named("pluginIcon");
+            _kernel.Bind<string>().ToConstant(Name).Named("nameSpace");
+
+            // Create the objects that make up the plugin
+            _kernel.Get<JlkWindowManager>();
+            _kernel.Get<ICommands>().RegisterCommands();
+
+            PluginLog.Log($"@@@@ Config dir '{pluginInterface.ConfigDirectory}'");
+            PluginLog.Log($"@@@@ Config file '{pluginInterface.ConfigFile}'");
+            PluginLog.Log($"@@@@ Config loc dir '{pluginInterface.GetPluginLocDirectory()}'");
         }
         catch
         {
@@ -117,61 +112,8 @@ public sealed partial class HousingInv : IDalamudPlugin
         }
     }
 
-    private void ClientStateOnTerritoryChanged(object? sender, ushort id)
-    {
-        var territory = _territoryManager[id];
-        if (territory == Territory.Empty)
-        {
-            PluginLog.Log($"@@@@ {id}: Cannot identify current Territory");
-        }
-        else
-        {
-            PluginLog.Log($"@@@@ {id}: now in {territory}");
-        }
-    }
-
-    // public static unsafe void ShowItems()
-    // {
-    // var aetheryteSheet = _dataManager.Excel.GetSheet<Aetheryte>();
-    // var terriSheet = _dataManager.Excel.GetSheet<TerritoryType>();
-    // var tele = Telepo.Instance();
-    // var list = tele->TeleportList;
-    // for (ulong j = 0; j < list.Size(); j++)
-    // {
-    //     var l = list.Get(j);
-    //     var aether = aetheryteSheet?.GetRow(l.AetheryteId);
-    //     if (aether.Order != 0) continue;
-    //     var aname = aether.AethernetName.Value.Name;
-    //     var aname2 = aether.PlaceName.Value?.Name;
-    //     var terr = terriSheet.GetRow(l.TerritoryId);
-    //     var tname = terr.PlaceName.Value?.Name;
-    //     PluginLog.Log($"@@@@ terr:{tname,-30} name2:{aname2,-30} ward:{l.Ward}  plot:{l.Plot}");
-    // }
-    //
-    //
-    // HousingManager mmm;
-    //
-    // var mgr = HousingManager.Instance();
-    // PluginLog.Log($"@@@@ div:{mgr->GetCurrentDivision()}  ward:{mgr->GetCurrentWard()}  plot:{mgr->GetCurrentPlot()}  id:{mgr->GetCurrentHouseId()} in:{mgr->IsInside()}  room:{mgr->GetCurrentRoom()}  {mgr->HasHousePermissions()}");
-    //
-    // return;
-
-    // var container = InventoryManager.Instance()->GetInventoryContainer(InventoryType.HousingInteriorPlacedItems2);
-    //
-    // var count = (int) container->Size;
-    // PluginLog.Log($"@@@@ House Ext Count: {count}");
-    // var itemSheet = _dataManager.Excel.GetSheet<Item>();
-    // PluginLog.Log($"@@@@ item count: {itemSheet?.RowCount}");
-    // for (var i = 0; i < count; i++)
-    // {
-    //     var item = container->GetInventorySlot(i);
-    //     if (item->ItemID == 0) continue;
-    //     var sheetItem = itemSheet?.GetRow(item->ItemID);
-    //     var name = sheetItem?.Name.ToString() ?? "???";
-    //     var sortCategory = sheetItem?.ItemUICategory.Value;
-    //     PluginLog.Log($"@@@@@@ [{item->Slot}] {item->ItemID}: {name} ({item->Quantity})  {sheetItem?.Unknown19}");
-    // }
-    // }
+    // ReSharper disable once UnusedMember.Global
+    public static string Version => Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? string.Empty;
 
     public string Name => "HousingInv";
 
@@ -191,10 +133,56 @@ public sealed partial class HousingInv : IDalamudPlugin
         // ReSharper disable ConditionalAccessQualifierIsNonNullableAccordingToAPIContract
         _configuration?.Save(); // Should be auto-saved but let's be sure
 
-        _clientState.TerritoryChanged -= ClientStateOnTerritoryChanged;
-        UnregisterCommands();
-        _windowManager?.Dispose();
-        _pluginIcon?.Dispose();
+        PluginLog.Log("@@@  Before kernel dispose");
+        _kernel.Dispose();
+        PluginLog.Log("@@@  Done disposing");
         // ReSharper restore ConditionalAccessQualifierIsNonNullableAccordingToAPIContract
     }
 }
+
+public interface IPluginIcon : TextureWrap
+{
+}
+
+// public static unsafe void ShowItems()
+// {
+// var aetheryteSheet = _dataManager.Excel.GetSheet<Aetheryte>();
+// var terriSheet = _dataManager.Excel.GetSheet<TerritoryType>();
+// var tele = Telepo.Instance();
+// var list = tele->TeleportList;
+// for (ulong j = 0; j < list.Size(); j++)
+// {
+//     var l = list.Get(j);
+//     var aether = aetheryteSheet?.GetRow(l.AetheryteId);
+//     if (aether.Order != 0) continue;
+//     var aname = aether.AethernetName.Value.Name;
+//     var aname2 = aether.PlaceName.Value?.Name;
+//     var terr = terriSheet.GetRow(l.TerritoryId);
+//     var tname = terr.PlaceName.Value?.Name;
+//     PluginLog.Log($"@@@@ terr:{tname,-30} name2:{aname2,-30} ward:{l.Ward}  plot:{l.Plot}");
+// }
+//
+//
+// HousingManager mmm;
+//
+// var mgr = HousingManager.Instance();
+// PluginLog.Log($"@@@@ div:{mgr->GetCurrentDivision()}  ward:{mgr->GetCurrentWard()}  plot:{mgr->GetCurrentPlot()}  id:{mgr->GetCurrentHouseId()} in:{mgr->IsInside()}  room:{mgr->GetCurrentRoom()}  {mgr->HasHousePermissions()}");
+//
+// return;
+
+// var container = InventoryManager.Instance()->GetInventoryContainer(InventoryType.HousingInteriorPlacedItems2);
+//
+// var count = (int) container->Size;
+// PluginLog.Log($"@@@@ House Ext Count: {count}");
+// var itemSheet = _dataManager.Excel.GetSheet<Item>();
+// PluginLog.Log($"@@@@ item count: {itemSheet?.RowCount}");
+// for (var i = 0; i < count; i++)
+// {
+//     var item = container->GetInventorySlot(i);
+//     if (item->ItemID == 0) continue;
+//     var sheetItem = itemSheet?.GetRow(item->ItemID);
+//     var name = sheetItem?.Name.ToString() ?? "???";
+//     var sortCategory = sheetItem?.ItemUICategory.Value;
+//     PluginLog.Log($"@@@@@@ [{item->Slot}] {item->ItemID}: {name} ({item->Quantity})  {sheetItem?.Unknown19}");
+// }
+// }

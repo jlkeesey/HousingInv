@@ -21,27 +21,17 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-using HousingInv.Model.Servers;
+namespace HousingInv.Model.Servers;
 
-namespace HousingInv.Model.Players;
-
-/// <summary>
-///     An abstraction for a player's basic information.
-/// </summary>
-public interface IPlayer
+public interface IServerManager
 {
-    /// <summary>
-    ///     The player character's name.
-    /// </summary>
-    string Name { get; }
+    Server GetWorld(string? name);
 
     /// <summary>
-    ///     The player character's home world.
+    ///     Retrieve the <see cref="Server" /> object from the given id. The data is retrieve from FFXIV if necessary and
+    ///     converted to a <see cref="Server" /> object.
     /// </summary>
-    Server HomeServer { get; }
-
-    /// <summary>
-    ///     Returns my full name (name plus home world).
-    /// </summary>
-    string FullName { get; }
+    /// <param name="id">The id to lookup.</param>
+    /// <returns>The found <see cref="Server" />. This will always return an object, even if the data cannot be found.</returns>
+    Server GetWorld(uint id);
 }

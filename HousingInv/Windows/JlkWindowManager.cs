@@ -22,15 +22,13 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using System;
+using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Windowing;
+using Dalamud.Logging;
 using Dalamud.Plugin;
-using HousingInv.Localization;
-using HousingInv.Model.Aetherytes;
-using HousingInv.Model.FC;
-using HousingInv.Model.Houses;
-using HousingInv.Model.Teleports;
-using HousingInv.Model.Territories;
-using ImGuiScene;
+using Ninject;
+
+// ReSharper disable ClassNeverInstantiated.Global
 
 namespace HousingInv.Windows;
 
@@ -42,42 +40,26 @@ public sealed class JlkWindowManager : IDisposable
     private readonly ConfigWindow _configWindow;
     private readonly DalamudPluginInterface _pluginInterface;
     private readonly WindowSystem _windowSystem;
+    private readonly FileDialogManager _fileDialogManager;
 
     /// <summary>
     ///     Creates the manager, all top-level windows, and binds them where needed.
     /// </summary>
     /// <param name="pluginInterface"></param>
-    /// <param name="config"></param>
-    /// <param name="territoryManager"></param>
-    /// <param name="aetheryteManager"></param>
-    /// <param name="teleportLocationManager"></param>
-    /// <param name="houseManager"></param>
+    /// <param name="configWindow"></param>
+    /// <param name="fileDialogManager"></param>
     /// <param name="nameSpace"></param>
-    /// <param name="chatterImage"></param>
-    /// <param name="loc"></param>
-    /// <param name="freeCompanyManager"></param>
     public JlkWindowManager(DalamudPluginInterface pluginInterface,
-                            Configuration config,
-                            TerritoryManager territoryManager,
-                            AetheryteManager aetheryteManager,
-                            TeleportLocationManager teleportLocationManager,
-                            FreeCompanyManager freeCompanyManager,
-                            HouseManager houseManager,
-                            string nameSpace,
-                            TextureWrap chatterImage,
-                            Loc loc)
+                            ConfigWindow configWindow,
+                            FileDialogManager fileDialogManager,
+                            [Named("nameSpace")] string nameSpace)
     {
         _pluginInterface = pluginInterface;
         _windowSystem = new WindowSystem(nameSpace);
-        _configWindow = Add(new ConfigWindow(config,
-                                             chatterImage,
-                                             territoryManager,
-                                             aetheryteManager,
-                                             teleportLocationManager,
-                                             freeCompanyManager,
-                                             houseManager,
-                                             loc));
+        _configWindow = Add(configWindow);
+        _fileDialogManager = fileDialogManager;
         _pluginInterface.UiBuilder.Draw += _windowSystem.Draw;
+        _pluginInterface.UiBuilder.Draw += _fileDialogManager.Draw;
         _pluginInterface.UiBuilder.OpenConfigUi += ToggleConfig;
     }
 
@@ -86,12 +68,12 @@ public sealed class JlkWindowManager : IDisposable
     /// </summary>
     public void Dispose()
     {
+        // PluginLog.Log("@@@@ Disposing Window Manager");
         _pluginInterface.UiBuilder.OpenConfigUi -= ToggleConfig;
+        _pluginInterface.UiBuilder.Draw -= _fileDialogManager.Draw;
         _pluginInterface.UiBuilder.Draw -= _windowSystem.Draw;
 
         _windowSystem.RemoveAllWindows();
-
-        _configWindow.Dispose();
     }
 
     /// <summary>

@@ -29,7 +29,7 @@ using Lumina.Excel;
 
 namespace HousingInv.Model.Aetherytes;
 
-public class AetheryteManager
+public class AetheryteManager : IAetheryteManager
 {
     private readonly ExcelSheet<Lumina.Excel.GeneratedSheets.Aetheryte> _aetheryteSheet;
     private readonly Dictionary<uint, Aetheryte> _cache = new();

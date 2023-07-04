@@ -21,21 +21,28 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-using Dalamud.Logging;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+namespace HousingInv.Model.Houses;
 
-namespace HousingInv.Model.FC;
-
-public unsafe class FreeCompanyManager : IFreeCompanyManager
+public enum HouseType
 {
-#if DEBUG
-    public void LogFc()
-    {
-        var fc = AgentFreeCompanyProfile.Instance();
+    Unknown = 0,
+    MyHouse = 1,
+    MyApartment = 2,
+    MyFc = 3,
+    Shared1 = 4,
+    Shared2 = 5,
+}
 
-        PluginLog.Log($"@@@@ name:'{fc->Name}'  master:'{fc->Master}'  ward: {fc->WardNumber}  plot:{fc->PlotNumber}");
-        PluginLog.Log($"@@@@ member count:'{fc->MemberCount}'  online:'{fc->MembersOnline}'  rank: {fc->Rank}  tag:{fc->Tag}");
-        PluginLog.Log($"@@@@ member estate name:'{fc->EstateName}'  slogan:'{fc->Slogan}'");
-    }
+public interface IHouseManager
+{
+    bool HasPermissions { get; }
+    bool IsInside { get; }
+    int Ward { get; }
+    int Plot { get; }
+    int Room { get; }
+    HouseType WhichHouse();
+
+#if DEBUG
+    unsafe void LogHere();
 #endif
 }
